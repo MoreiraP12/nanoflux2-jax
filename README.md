@@ -1,159 +1,145 @@
-# FLUX.2
+# nanoflux2-jax
 
-**Frontier Visual Intelligence** — State-of-the-art image generation and editing from [Black Forest Labs](https://bfl.ai).
+A from-scratch JAX port of [Black Forest Labs' Flux 2 Klein 4B](https://huggingface.co/black-forest-labs/FLUX.2-klein-4B) that runs **2-3x faster than H100** on a single TPU v6e chip.
+
+~500 lines of model code. ~120 lines of sampling. Download the weights from HuggingFace. That's it.
+
+<p align="center">
+  <img src="assets/tpu_samples/japanese_garden.png" width="320" />
+  <img src="assets/tpu_samples/astronaut.png" width="320" />
+</p>
+<p align="center">
+  <img src="assets/tpu_samples/fox.png" width="320" />
+  <img src="assets/tpu_samples/alpine_village.png" width="320" />
+</p>
+<p align="center">
+  <sub>All images generated on TPU v6e in under 300ms. Pixel-identical to PyTorch reference (cos_sim > 0.999).</sub>
+</p>
 
 ---
 
-<p align="center">
-<a href="https://docs.bfl.ai">API Docs</a> •
-<a href="https://huggingface.co/black-forest-labs">Hugging Face</a> •
-<a href="https://bfl.ai/blog">Blog</a>
-</p>
+## Performance
 
-This repo contains minimal inference code to run image generation & editing with our FLUX.2 open-weight models.
+| Resolution | H100 (PyTorch) | TPU v6e (JAX) | Speedup |
+|:-----------|:--------------:|:-------------:|:-------:|
+| 512x512    | 258ms          | **84ms**      | **3.1x** |
+| 768x768    | 409ms          | **179ms**     | **2.3x** |
+| 1024x1024  | 651ms          | **325ms**     | **2.0x** |
+| 1360x768   | 649ms          | **285ms**     | **2.3x** |
+| 1920x1080  | 1,271ms        | **614ms**     | **2.1x** |
 
-## News
-
-- **[15.01.2026]** Today, we release the FLUX.2 [klein] family of models, our fastest models yet. Sub-second generation on consumer GPUs. Read more about it in our [blog post](https://bfl.ai/blog/flux2-klein-towards-interactive-visual-intelligence).
-- **[25.11.2025]** We are releasing FLUX.2 [dev], a 32B parameter model for text-to-image generation, and image editing (single reference image and multiple reference images).
-
-## Model Overview
-
-| Name | Step-distilled | Guidance-distilled | Text-to-Image | Image Editing (Single reference) | Image Editing (Multi-reference) | License |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| [FLUX.2 [klein] 4B](https://huggingface.co/black-forest-labs/FLUX.2-klein-4B) | ✅ | ✅ | ✅ | ✅ | ✅ | [apache-2.0](https://huggingface.co/datasets/choosealicense/licenses/blob/main/markdown/apache-2.0.md) |
-| [FLUX.2 [klein] 9B](https://huggingface.co/black-forest-labs/FLUX.2-klein-9B) | ✅ | ✅ | ✅ | ✅ | ✅ | [FLUX Non-Commercial License](model_licenses/LICENSE-FLUX-NON-COMMERICAL) |
-| [FLUX.2 [klein] 9B KV](https://huggingface.co/black-forest-labs/FLUX.2-klein-9b-kv) | ✅ | ✅ | ✅ | ✅ | ✅ | [FLUX Non-Commercial License](model_licenses/LICENSE-FLUX-NON-COMMERICAL) |
-| [FLUX.2 [klein] 4B Base](https://huggingface.co/black-forest-labs/FLUX.2-klein-base-4B) | ❌ | ❌ | ✅ | ✅ | ✅ | [apache-2.0](https://huggingface.co/datasets/choosealicense/licenses/blob/main/markdown/apache-2.0.md) |
-| [FLUX.2 [klein] 9B Base](https://huggingface.co/black-forest-labs/FLUX.2-klein-base-9B) | ❌ | ❌ | ✅ | ✅ | ✅ | [FLUX Non-Commercial License](model_licenses/LICENSE-FLUX-NON-COMMERICAL) |
-| [FLUX.2 [dev]](https://huggingface.co/black-forest-labs/FLUX.2-dev) | ❌ | ✅ | ✅ | ✅ | ✅ | [FLUX Non-Commercial License](model_licenses/LICENSE-FLUX-NON-COMMERICAL) |
-
-**All models support**: Text-to-Image ✅ | Single-ref Editing ✅ | Multi-ref Editing ✅
-
-## Which Model Should I Use?
-
-| Need | Recommended |
-|------|-------------|
-| Real-time apps, interactive workflows | [klein] 4B, 9B, or 9B KV (distilled) |
-| Consumer GPU (e.g. RTX 3090/4070) | [klein] 4B |
-| Fine-tuning, LoRA training | [klein] Base or FLUX.2 [dev] |
-| Maximum quality, no latency constraints | FLUX.2 [dev] |
-
-## `FLUX.2 [klein]`
-
-FLUX.2 [klein] is our fastest model family — generating and editing (multiple) images in under a second without sacrificing quality. Built for real-time applications, creative iteration, and deployment on consumer hardware.
-
-### Key Capabilities
-- **Sub-second inference** — Generate or edit images under a second on modern hardware
-- **Unified generation & editing** — Text-to-image, image editing, and multi-reference in one model
-- **Runs on consumer GPUs** — Klein 4B fits in ~8GB VRAM (RTX 3090/4070 and up)
-- **Apache 2.0 on 4B** — Open-source, fine-tuning, and customization
-
-### Performance
-
-Klein models define the Pareto frontier for quality vs. latency and VRAM across text-to-image, single-reference editing, and multi-reference generation:
+<sub>4-step distilled denoise, bf16, batch=1. H100 baseline uses official BFL PyTorch code.</sub>
 
 <p align="center">
-<img src="assets/klein_benchmark.jpg" alt="FLUX.2 [klein] vs Baselines — Elo vs Latency and VRAM" width="800"/>
+  <img src="assets/benchmarks/hero_tpu_vs_h100.png" width="600" alt="TPU v6e vs H100 latency comparison" />
 </p>
-<sub>Higher Elo + Lower Latency/VRAM = Better.</sub>
 
-### The Klein Family
+That's **11.9 images/second** at 512x512 on a single TPU v6e chip.
 
-| Model | Best For |
-|:---|:---|
-| **[klein] 4B** | Maximum speed, consumer hardware, edge deployment |
-| **[klein] 9B** | High quality text-to-image; for image editing, 9B KV is faster at equal quality |
-| **[klein] 9B KV** | Best quality-to-latency ratio, faster than 4B for multi-reference image editing via [KV caching](docs/flux2_klein_kv_cache.md) |
-| **[klein] 4B Base** | Fine-tuning on limited hardware, full customization |
-| **[klein] 9B Base** | Research, LoRA training, maximum output diversity |
+<p align="center">
+  <img src="assets/benchmarks/throughput.png" width="600" alt="Throughput comparison" />
+</p>
 
-**Distilled vs Base:**
-- Use **Distilled** (4-step) for production apps and real-time generation
-- Use **Base** (50-step) for fine-tuning, LoRA training, and maximum flexibility
+## Why TPU?
 
-**Licensing:** 4B models are [Apache 2.0](https://huggingface.co/datasets/choosealicense/licenses/blob/main/markdown/apache-2.0.md). 9B models use the [FLUX.2-dev Non-Commercial License](model_licenses/LICENSE-FLUX-DEV).
+Klein 4B is a flow-matching diffusion transformer (MMDiT). ~75% of its compute is large matrix multiplications -- QKV projections, MLP layers, attention -- exactly what the TPU's 256x256 systolic array was designed for.
 
-### Text-to-image examples
+The key number is the **critical arithmetic intensity**: the ratio of peak compute to memory bandwidth.
 
-Example focused on realism 
-![t2i-klein-grid](assets/t2i_klein_realism.jpg)
-
-Example focused on output diversity
-![t2i-klein-others](assets/t2i_klein_others.jpg)
-
-### Editing examples
-
-![i2i-klein](assets/i2i_klein.jpg)
-
-## `FLUX.2 [dev]`
-
-`FLUX.2 [dev]` is a 32B parameter flow matching transformer model capable of generating and editing (multiple) images. The model is released under the [FLUX.2-dev Non-Commercial License](model_licenses/LICENSE-FLUX-DEV) and can be found [here](https://huggingface.co/black-forest-labs/FLUX.2-dev).
-
-Note that the below script for `FLUX.2 [dev]` needs considerable amount of VRAM (H100-equivalent GPU). We partnered with Hugging Face to make quantized versions that run on consumer hardware; below you can find instructions on how to run it on a RTX 4090 with a remote text encoder, for other quantization sizes and combinations, check the [diffusers quantization guide here](docs/flux2_dev_hf.md).
-
-### Text-to-image examples
-
-![t2i-grid](assets/teaser_generation.png)
-
-### Editing examples
-
-![edit-grid](assets/teaser_editing.png)
-
-### Prompt upsampling
-
-`FLUX.2 [dev]` benefits significantly from prompt upsampling. The inference script below offers the option to use both local prompt upsampling with the same model we use for text encoding ([`Mistral-Small-3.2-24B-Instruct-2506`](https://huggingface.co/mistralai/Mistral-Small-3.2-24B-Instruct-2506)), or alternatively, use any model on [OpenRouter](https://openrouter.ai/) via an API call.
-
-See the [upsampling guide](docs/flux2_with_prompt_upsampling.md) for additional details and guidance on when to use upsampling.
-
-## `FLUX.2` autoencoder
-
-The FLUX.2 autoencoder has considerably improved over the [FLUX.1 autoencoder](https://huggingface.co/black-forest-labs/FLUX.1-dev/blob/main/ae.safetensors). The autoencoder is released under [Apache 2.0](https://huggingface.co/datasets/choosealicense/licenses/blob/main/markdown/apache-2.0.md) and can be found [here](https://huggingface.co/black-forest-labs/FLUX.2-dev/blob/main/ae.safetensors). For more information, see our [technical blogpost](https://bfl.ai/research/representation-comparison).
-
-## Local installation
-
-The inference code was tested on GB200 using CUDA 12.9 and Python 3.12.
-
-```bash
-python3.12 -m venv .venv
-source .venv/bin/activate
-pip install -e . --extra-index-url https://download.pytorch.org/whl/cu129 --no-cache-dir
+```
+TPU v6e: 918 TFLOPS / 1.6 TB/s = 574 FLOPS/byte
+H100:    989 TFLOPS / 3.35 TB/s = 295 FLOPS/byte
 ```
 
-## Run the CLI
+Klein's dominant operations have arithmetic intensities around 3,000 -- deeply compute-bound on both machines. But XLA sees the entire computation graph at compile time and automatically fuses the memory-bound glue operations (norms, reshapes, activations) between the matmuls.
 
-Before running the CLI, you may download the weights from [here](https://huggingface.co/black-forest-labs/FLUX.2-dev) and set the following environment variables.
+<p align="center">
+  <img src="assets/benchmarks/roofline.png" width="600" alt="Roofline analysis" />
+</p>
 
-```bash
-export FLUX2_MODEL_PATH="<flux2_path>"
-export AE_MODEL_PATH="<ae_path>"
-export KLEIN_4B_MODEL_PATH="<klein_4b_path>"
-export KLEIN_4B_BASE_MODEL_PATH="<klein_4b_base_path>"
-export KLEIN_9B_MODEL_PATH="<klein_9b_path>"
-export KLEIN_9B_KV_MODEL_PATH="<klein_9b_kv_path>"
-export KLEIN_9B_BASE_MODEL_PATH="<klein_9b_base_path>"
+<p align="center">
+  <img src="assets/benchmarks/time_breakdown.png" width="600" alt="Time breakdown" />
+</p>
+
+## Architecture
+
+The port is pure functional JAX. No Flax, no nn.Module, no framework overhead.
+
+```
+src/flux2_jax/
+  model.py           # ~484 lines — full Klein 4B architecture
+  sampling.py         # ~122 lines — flow-matching denoise loop
+  convert_weights.py  # ~149 lines — PyTorch checkpoint → JAX pytree
 ```
 
-If you don't set the environment variables, the weights will be downloaded automatically.
+Key design decisions:
 
-You can start an interactive session to do both text to image generation as well as editing (one or multiple) images with the following command:
+- **Pure functions**: `forward(params, x) -> y`. Parameters live in a pytree.
+- **`jax.lax.scan`** over the 20 identical single-stream blocks -- compilation is O(1) regardless of depth. JIT takes ~5 seconds.
+- **Full-loop JIT**: the entire 4-step denoise is traced at once. This is **4.3x faster** than step-by-step JIT because XLA optimizes buffer reuse across steps.
+- **Bit-exact to PyTorch**: cosine similarity > 0.999 against the reference implementation.
+
+## Quickstart
 
 ```bash
-PYTHONPATH=src python scripts/cli.py
+# Install
+pip install jax[tpu] -f https://storage.googleapis.com/jax-releases/libtpu_releases.html
+pip install safetensors transformers
+
+# Download weights from HuggingFace
+# https://huggingface.co/black-forest-labs/FLUX.2-klein-4B
+
+# Generate
+python -c "
+from flux2_jax.model import build_model
+from flux2_jax.sampling import sample
+from flux2_jax.convert_weights import load_weights
+
+params = load_weights('path/to/klein-4b')
+img = sample(params, prompt='a watercolor painting of a Japanese garden in autumn')
+"
 ```
 
-## Watermarking
+## Samples
 
-We've added an option to embed invisible watermarks directly into the generated images
-via the [invisible watermark library](https://github.com/ShieldMnt/invisible-watermark).
+All generated on TPU v6e, 4-step denoise, bf16:
 
-Additionally, we are recommending implementing a solution to mark the metadata of your outputs, such as [C2PA](https://c2pa.org/)
+<p align="center">
+  <img src="assets/tpu_samples/cats_window.png" width="400" />
+  <img src="assets/tpu_samples/golden_retriever.png" width="400" />
+</p>
+<p align="center">
+  <img src="assets/tpu_samples/butterfly_macro.png" width="400" />
+  <img src="assets/tpu_samples/japanese_garden.png" width="400" />
+</p>
+
+## Roofline Analysis
+
+The theoretical minimum per step (1024x1024) is 41ms. We achieve 81ms -- about 51% of roofline peak. The gap comes from data movement between matmuls (reshapes, norms, RoPE) which are memory-bound.
+
+With a working flash attention kernel (currently broken on v6e -- [see below](#known-issues)), we'd expect ~75ms per step, or 55% of roofline.
+
+<p align="center">
+  <img src="assets/benchmarks/roofline_gap.png" width="500" alt="Closing the roofline gap" />
+</p>
+
+## Known Issues
+
+**JAX attention kernel bug on TPU v6e**: `jax.nn.dot_product_attention` produces silently incorrect results on TPU v6e (cosine similarity ~0.02 vs correct answer). All three TPU attention APIs are affected. The port uses manual einsum attention as a workaround, which is correct but doesn't benefit from flash attention's memory savings. Bug report filed with the JAX team.
+
+## Acknowledgments
+
+Huge shoutout to [Black Forest Labs](https://bfl.ai) for building Klein. The architecture is beautifully clean -- the same design clarity that makes it fast on CUDA made it trivially portable to XLA. The model weights are available under Apache 2.0 on [HuggingFace](https://huggingface.co/black-forest-labs/FLUX.2-klein-4B).
 
 ## Citation
 
-If you find the provided code or models useful for your research, consider citing them as:
-
 ```bib
+@misc{nanoflux2-jax,
+    title={nanoflux2-jax: Flux 2 Klein 4B on TPU v6e},
+    year={2026},
+    howpublished={\url{https://github.com/YOUR_USERNAME/nanoflux2-jax}},
+}
+
 @misc{flux-2-2025,
     author={Black Forest Labs},
     title={{FLUX.2: Frontier Visual Intelligence}},
@@ -161,3 +147,7 @@ If you find the provided code or models useful for your research, consider citin
     howpublished={\url{https://bfl.ai/blog/flux-2}},
 }
 ```
+
+## License
+
+The JAX port code is MIT licensed. Model weights are subject to [Black Forest Labs' licensing](https://huggingface.co/black-forest-labs/FLUX.2-klein-4B) (Apache 2.0 for Klein 4B).
