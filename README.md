@@ -100,17 +100,49 @@ img = sample(params, prompt='a watercolor painting of a Japanese garden in autum
 "
 ```
 
-## Samples
+## H100 vs TPU v6e — Same Prompt, Same Seed
+
+Same weights, same precision, same seed. The outputs are pixel-identical (cos_sim > 0.999).
+
+<table>
+<tr>
+<th align="center">H100 (PyTorch)</th>
+<th align="center">TPU v6e (JAX)</th>
+<th align="center">Prompt</th>
+</tr>
+<tr>
+<td><img src="assets/tpu_samples/garden_h100_s200.png" width="280" /></td>
+<td><img src="assets/tpu_samples/garden_tpu_s200.png" width="280" /></td>
+<td><em>"a watercolor painting of a Japanese garden in autumn"</em><br/><sub>1024x1024, seed=200</sub></td>
+</tr>
+<tr>
+<td><img src="assets/tpu_samples/astronaut_h100_s100.png" width="280" /></td>
+<td><img src="assets/tpu_samples/astronaut_tpu_s100.png" width="280" /></td>
+<td><em>"a photorealistic portrait of an astronaut floating in space"</em><br/><sub>1360x768, seed=100</sub></td>
+</tr>
+<tr>
+<td><img src="assets/tpu_samples/dewdrop_h100_s300.png" width="280" /></td>
+<td><img src="assets/tpu_samples/dewdrop_tpu_s300.png" width="280" /></td>
+<td><em>"macro photography of a dewdrop on a spider web at sunrise"</em><br/><sub>768x768, seed=300</sub></td>
+</tr>
+<tr>
+<td><img src="assets/tpu_samples/cat_h100_s42.png" width="280" /></td>
+<td><img src="assets/tpu_samples/cat_tpu_s42.png" width="280" /></td>
+<td><em>"a photo of a cat sitting on a windowsill watching the rain"</em><br/><sub>1360x768, seed=42</sub></td>
+</tr>
+</table>
+
+## More Samples
 
 All generated on TPU v6e, 4-step denoise, bf16:
 
 <p align="center">
-  <img src="assets/tpu_samples/cats_window.png" width="400" />
   <img src="assets/tpu_samples/golden_retriever.png" width="400" />
+  <img src="assets/tpu_samples/butterfly_macro.png" width="400" />
 </p>
 <p align="center">
-  <img src="assets/tpu_samples/butterfly_macro.png" width="400" />
-  <img src="assets/tpu_samples/japanese_garden.png" width="400" />
+  <img src="assets/tpu_samples/alpine_village.png" width="400" />
+  <img src="assets/tpu_samples/fox.png" width="400" />
 </p>
 
 ## Roofline Analysis
