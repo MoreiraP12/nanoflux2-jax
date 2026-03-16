@@ -16,12 +16,12 @@ A from-scratch JAX port of [Black Forest Labs' Flux 2 Klein 4B](https://huggingf
   <sub>All images generated on TPU v6e in under 300ms. Pixel-identical to PyTorch reference (cos_sim > 0.999).</sub>
 </p>
 
----
+--
 
 ## Performance
 
 | Resolution | H100 (PyTorch) | TPU v6e (JAX) | Speedup |
-|:-----------|:--------------:|:-------------:|:-------:|
+|:------|:-------:|:-------:|:----:|
 | 512x512    | 258ms          | **84ms**      | **3.1x** |
 | 768x768    | 409ms          | **179ms**     | **2.3x** |
 | 1024x1024  | 651ms          | **325ms**     | **2.0x** |
@@ -42,7 +42,7 @@ That's **11.9 images/second** at 512x512 on a single TPU v6e chip.
 
 ## Why TPU?
 
-Klein 4B is a flow-matching diffusion transformer (MMDiT). ~75% of its compute is large matrix multiplications -- QKV projections, MLP layers, attention -- exactly what the TPU's 256x256 systolic array was designed for.
+Klein 4B is a flow-matching diffusion transformer (MMDiT). ~75% of its compute is large matrix multiplications - QKV projections, MLP layers, attention - exactly what the TPU's 256x256 systolic array was designed for.
 
 The key number is the **critical arithmetic intensity**: the ratio of peak compute to memory bandwidth.
 
@@ -51,7 +51,7 @@ TPU v6e: 918 TFLOPS / 1.6 TB/s = 574 FLOPS/byte
 H100:    989 TFLOPS / 3.35 TB/s = 295 FLOPS/byte
 ```
 
-Klein's dominant operations have arithmetic intensities around 3,000 -- deeply compute-bound on both machines. But XLA sees the entire computation graph at compile time and automatically fuses the memory-bound glue operations (norms, reshapes, activations) between the matmuls.
+Klein's dominant operations have arithmetic intensities around 3,000 - deeply compute-bound on both machines. But XLA sees the entire computation graph at compile time and automatically fuses the memory-bound glue operations (norms, reshapes, activations) between the matmuls.
 
 <p align="center">
   <img src="assets/benchmarks/roofline.png" width="600" alt="Roofline analysis" />
@@ -75,7 +75,7 @@ src/flux2_jax/
 Key design decisions:
 
 - **Pure functions**: `forward(params, x) -> y`. Parameters live in a pytree.
-- **`jax.lax.scan`** over the 20 identical single-stream blocks -- compilation is O(1) regardless of depth. JIT takes ~5 seconds.
+- **`jax.lax.scan`** over the 20 identical single-stream blocks - compilation is O(1) regardless of depth. JIT takes ~5 seconds.
 - **Full-loop JIT**: the entire 4-step denoise is traced at once. This is **4.3x faster** than step-by-step JIT because XLA optimizes buffer reuse across steps.
 - **Bit-exact to PyTorch**: cosine similarity > 0.999 against the reference implementation.
 
@@ -147,7 +147,7 @@ All generated on TPU v6e, 4-step denoise, bf16:
 
 ## Roofline Analysis
 
-The theoretical minimum per step (1024x1024) is 41ms. We achieve 81ms -- about 51% of roofline peak. The gap comes from data movement between matmuls (reshapes, norms, RoPE) which are memory-bound.
+The theoretical minimum per step (1024x1024) is 41ms. We achieve 81ms - about 51% of roofline peak. The gap comes from data movement between matmuls (reshapes, norms, RoPE) which are memory-bound.
 
 With flash attention, we'd expect ~75ms per step, or 55% of roofline.
 
@@ -157,29 +157,13 @@ With flash attention, we'd expect ~75ms per step, or 55% of roofline.
 
 ## Acknowledgments
 
-Inspired by [Andrej Karpathy's nanoGPT](https://github.com/karpathy/nanoGPT) -- the idea that you can strip a powerful model down to its essence and make it readable, hackable, and fast in a few hundred lines of code. This is the nanoGPT of diffusion.
+Inspired by [Andrej Karpathy's nanoGPT](https://github.com/karpathy/nanoGPT) - the idea that you can strip a powerful model down to its essence and make it readable, hackable, and fast in a few hundred lines of code. This is the nanoGPT of diffusion.
 
-The roofline analysis and TPU optimization approach were heavily informed by [How to Scale Your Model](https://jax-ml.github.io/scaling-book/) -- an incredible resource for learning JAX and understanding hardware performance. If you want to go deep on why TPUs work the way they do, start there.
+The roofline analysis and TPU optimization approach were heavily informed by [How to Scale Your Model](https://jax-ml.github.io/scaling-book/) - an incredible resource for learning JAX and understanding hardware performance. If you want to go deep on why TPUs work the way they do, start there.
 
-Huge shoutout to [Black Forest Labs](https://bfl.ai) for building Klein. The architecture is beautifully clean -- the same design clarity that makes it fast on CUDA made it trivially portable to XLA. The model weights are available under Apache 2.0 on [HuggingFace](https://huggingface.co/black-forest-labs/FLUX.2-klein-4B).
+Huge shoutout to [Black Forest Labs](https://bfl.ai) for building Klein. The architecture is beautifully clean - the same design clarity that makes it fast on CUDA made it almost trivially portable to XLA. The model weights are available under Apache 2.0 on [HuggingFace](https://huggingface.co/black-forest-labs/FLUX.2-klein-4B) go check it out.
 
-## Citation
-
-```bib
-@misc{nanoflux2-jax,
-    title={nanoflux2-jax: Flux 2 Klein 4B on TPU v6e},
-    year={2026},
-    howpublished={\url{https://github.com/YOUR_USERNAME/nanoflux2-jax}},
-}
-
-@misc{flux-2-2025,
-    author={Black Forest Labs},
-    title={{FLUX.2: Frontier Visual Intelligence}},
-    year={2025},
-    howpublished={\url{https://bfl.ai/blog/flux-2}},
-}
-```
 
 ## License
 
-The JAX port code is MIT licensed. Model weights are subject to [Black Forest Labs' licensing](https://huggingface.co/black-forest-labs/FLUX.2-klein-4B) (Apache 2.0 for Klein 4B).
+The JAX port code is MIT licensed but please never forget to give the credit and make sure you're in compliance with BFL. Model weights are subject to [Black Forest Labs' licensing](https://huggingface.co/black-forest-labs/FLUX.2-klein-4B) (Apache 2.0 for Klein 4B).
