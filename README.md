@@ -149,17 +149,17 @@ All generated on TPU v6e, 4-step denoise, bf16:
 
 The theoretical minimum per step (1024x1024) is 41ms. We achieve 81ms -- about 51% of roofline peak. The gap comes from data movement between matmuls (reshapes, norms, RoPE) which are memory-bound.
 
-With a working flash attention kernel (currently broken on v6e -- [see below](#known-issues)), we'd expect ~75ms per step, or 55% of roofline.
+With flash attention, we'd expect ~75ms per step, or 55% of roofline.
 
 <p align="center">
   <img src="assets/benchmarks/roofline_gap.png" width="500" alt="Closing the roofline gap" />
 </p>
 
-## Known Issues
-
-**JAX attention kernel bug on TPU v6e**: `jax.nn.dot_product_attention` produces silently incorrect results on TPU v6e (cosine similarity ~0.02 vs correct answer). All three TPU attention APIs are affected. The port uses manual einsum attention as a workaround, which is correct but doesn't benefit from flash attention's memory savings. Bug report filed with the JAX team.
-
 ## Acknowledgments
+
+Inspired by [Andrej Karpathy's nanoGPT](https://github.com/karpathy/nanoGPT) -- the idea that you can strip a powerful model down to its essence and make it readable, hackable, and fast in a few hundred lines of code. This is the nanoGPT of diffusion.
+
+The roofline analysis and TPU optimization approach were heavily informed by [How to Scale Your Model](https://jax-ml.github.io/scaling-book/) -- an incredible resource for learning JAX and understanding hardware performance. If you want to go deep on why TPUs work the way they do, start there.
 
 Huge shoutout to [Black Forest Labs](https://bfl.ai) for building Klein. The architecture is beautifully clean -- the same design clarity that makes it fast on CUDA made it trivially portable to XLA. The model weights are available under Apache 2.0 on [HuggingFace](https://huggingface.co/black-forest-labs/FLUX.2-klein-4B).
 
